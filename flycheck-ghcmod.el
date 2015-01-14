@@ -56,6 +56,22 @@
             (replace-regexp-in-string "\u0000" "\n" message 'fixed-case 'literal))))
   errors)
 
+(flycheck-define-checker haskell-ghcmod-lint
+  "Haskell checker using ghc-mod lint."
+  :command ("ghc-mod" "lint" source-inplace)
+  :error-patterns
+  ((warning line-start (file-name) ":" line ":" column ":"
+            " Warning: " (message) line-end)
+   (error line-start (file-name) ":" line ":" column ":"
+          " Error: " (message) line-end))
+  :error-filter
+  (lambda (errors)
+    (-> errors
+        flycheck-substitute-ghcmod
+        flycheck-dedent-error-messages
+        flycheck-sanitize-errors))
+  :modes haskell-mode)
+
 (flycheck-define-checker haskell-ghcmod
   "Haskell checker using ghc-mod."
   :command ("ghc-mod" "check" source-inplace)
@@ -70,8 +86,10 @@
         flycheck-substitute-ghcmod
         flycheck-dedent-error-messages
         flycheck-sanitize-errors))
-  :modes haskell-mode)
+  :modes haskell-mode
+  :next-checkers ((t . haskell-ghcmod-lint)))
 
+(add-to-list 'flycheck-checkers 'haskell-ghcmod-lint 'append)
 (add-to-list 'flycheck-checkers 'haskell-ghcmod)
 
 (provide 'flycheck-ghcmod)
